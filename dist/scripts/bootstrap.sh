@@ -199,8 +199,10 @@ CONFIG_FILE="${SKILL_SRC}/config.json"
 
 prompt_skill_config() {
   LOOKER_URL="$(python3 -c "import json;print(json.load(open('$LOOKER_CONFIG_PATH'))['base_url'])")"
-  read -rp "$(echo -e "  ${BOLD}Default LookML model (e.g. basic_ecomm): ${NC}")" MODEL
-  read -rp "$(echo -e "  ${BOLD}Default explore in that model (e.g. basic_order_items): ${NC}")" EXPLORE
+  read -rp "$(echo -e "  ${BOLD}Default LookML model [${YELLOW}basic_ecomm${NC}${BOLD}]: ${NC}")" MODEL
+  MODEL="${MODEL:-basic_ecomm}"
+  read -rp "$(echo -e "  ${BOLD}Default explore in that model [${YELLOW}basic_order_items${NC}${BOLD}]: ${NC}")" EXPLORE
+  EXPLORE="${EXPLORE:-basic_order_items}"
   read -rp "$(echo -e "  ${BOLD}Looker folder ID to publish dashboards into [${YELLOW}1${NC}${BOLD}]: ${NC}")" FOLDER
   FOLDER="${FOLDER:-1}"
   read -rp "$(echo -e "  ${BOLD}LookML project name to create in Looker [${YELLOW}canvas_dashboards${NC}${BOLD}]: ${NC}")" PROJECT
