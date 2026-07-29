@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Launch genai-toolbox in STDIO MCP mode with the Looker prebuilts.
 #
-# Claude Code spawns this via .mcp.json. The toolbox exposes Looker's
+# The AI agent spawns this via .mcp.json. The toolbox exposes Looker's
 # API as MCP tools — what the dashboard-creator skill calls to verify
 # field names, list explores, run queries, create dashboards, etc.
 #
@@ -16,7 +16,7 @@
 # Falls back to LOOKER_* env vars if the file is missing.
 #
 # The toolbox binary is large (~150 MB) and not committed. Default path
-# points at Adam's copy at ~/Projects/BQClaude/toolbox; customers can
+# points at Adam's local copy by default; customers can
 # override via TOOLBOX_BIN or download the binary themselves from
 # https://github.com/googleapis/genai-toolbox/releases.
 

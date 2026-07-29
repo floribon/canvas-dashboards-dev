@@ -13,16 +13,19 @@ from here.
 For a fresh install on a new machine:
 
 ```bash
-bash <(curl -fsSL https://storage.googleapis.com/canvas-dashboards-shared/install.sh)
+bash <(curl -fsSL https://floribon.github.io/canvas-dashboards-dev/install.sh)
 ```
 
 Step-by-step walkthrough: [docs/customer-quickstart.md](docs/customer-quickstart.md).
+
+**For AI Agents:**
+When asked to create, edit, or publish a dashboard, you must read and follow the strict instructions located in `skills/dashboard-creator/SKILL.md` before taking any action.
 
 ## Layout (after install)
 
 ```
 ~/canvas-dashboards/
-├── skills/dashboard-creator/   the Claude Code skill (symlinked to ~/.claude/skills/)
+├── skills/dashboard-creator/   the AI agent skill instructions & scripts
 ├── runtime/                    canvas-dashboard runtime + standalone host (for local preview)
 ├── scripts/                    bootstrap, install-manifest, toolbox launcher
 ├── lookml-template/            templated manifest + stub model

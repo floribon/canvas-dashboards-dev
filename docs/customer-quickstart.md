@@ -10,14 +10,14 @@ Looker. About 10 minutes the first time.
   permission (used to push the LookML manifest into a dev workspace).
   Find or create one at `<your-looker>/admin/users` → pick a user →
   **Edit API keys**.
-- **Claude Code** installed and authenticated.
+- An **AI Agent** (Claude Code, Antigravity, or Cursor) installed and authenticated.
 - **Python 3.10+**.
 - macOS or Linux on amd64/arm64.
 
 ## Step 1 — Install
 
 ```bash
-bash <(curl -fsSL https://storage.googleapis.com/canvas-dashboards-shared/install.sh)
+bash <(curl -fsSL https://floribon.github.io/canvas-dashboards-dev/install.sh)
 ```
 
 This downloads the latest curated payload into `~/canvas-dashboards`
@@ -48,7 +48,6 @@ You'll be prompted for:
 What it does:
 
 - Downloads `scripts/toolbox` (Google's `mcp-toolbox` binary).
-- Symlinks `skills/dashboard-creator/` into `~/.claude/skills/`.
 - Writes `skills/dashboard-creator/config.json`.
 - Pushes the manifest + stub model into your Looker's LookML
   project — the name you chose at prompt 5 (`canvas_dashboards` by
@@ -125,13 +124,13 @@ correct end-to-end. You're ready to author your own dashboards.
 
 ## Step 4 — Author your first dashboard
 
-Open Claude Code in `~/canvas-dashboards` (or anywhere). Ask:
+Open your AI agent in `~/canvas-dashboards`. Ask:
 
 > Use the dashboard-creator skill to create a sales dashboard against
 > the basic_ecomm model with a monthly trend, top users by spend, and
 > total revenue.
 
-Claude reads `skills/dashboard-creator/config.json` for your defaults,
+The agent reads `skills/dashboard-creator/config.json` for your defaults,
 queries the Looker MCP toolbox to verify field names in your model,
 drafts a canvas-def into a local file, opens
 `http://localhost:8765/runtime/standalone.html?path=…` in your
@@ -164,11 +163,9 @@ runs `publish-dashboard.py` when you say it's ready.
   element exists (`<your-looker>/api/docs#!/Dashboard/dashboard`),
   check that its `body_text` field is populated. Re-run
   `publish-dashboard.py` if it's empty.
-- **`/mcp` doesn't show `looker`** — Claude Code reads `.mcp.json` on
-  session start. If you ran bootstrap mid-session, restart Claude
-  Code. From the terminal, `claude mcp list` is the ground truth —
-  if it shows `looker: ✓ Connected`, the slash-command dialog is
-  just stale.
+- **MCP server isn't connected** — Most agents read `.mcp.json` on
+  session start. If you ran bootstrap mid-session, restart your agent.
+  (For Claude Code, `claude mcp list` is the ground truth to check connections).
 - **`looker-config.json` has wrong creds and I can't get past the
   install step** — re-run `bootstrap.sh`; it shows the stored values
   and asks whether to keep or re-enter them.

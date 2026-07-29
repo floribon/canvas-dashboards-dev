@@ -167,8 +167,12 @@ def main():
     tile_js_url = args.tile_js_url or cfg.get("tile_js_url") or DEFAULT_TILE_JS_URL
     tile_js_origin = re.match(r"^(https?://[^/]+)", tile_js_url).group(1)
     base = cfg["base_url"].rstrip("/")
+    target = cfg.get("target_url", base)
 
-    print(f"target: {base}")
+    if target != base:
+        print(f"target: {target} (via SSO proxy {base})")
+    else:
+        print(f"target: {base}")
     print(f"project: {args.project}")
     print(f"tile.js: {tile_js_url}")
     print()
@@ -178,13 +182,23 @@ def main():
     # Resolve connection name (auto-pick first if not specified).
     connection = args.connection
     if not connection:
-        code, conns = call(base, token, "GET", "/connections")
-        if code != 200 or not isinstance(conns, list) or not conns:
-            sys.exit(f"error: couldn't list connections (HTTP {code}). "
-                     "Pass --connection <name> explicitly.")
-        connection = conns[0]["name"]
-        print(f"using connection: {connection} "
-              f"({len(conns)} available; auto-picked first)")
+        code_mod, mod_info = call(base, token, "GET", f"/lookml_models/{args.project}")
+        allowed = []
+        if code_mod == 200 and isinstance(mod_info, dict) and not mod_info.get("unlimited_db_connections", True):
+            allowed = mod_info.get("allowed_db_connection_names") or []
+
+        if allowed:
+            connection = allowed[0]
+            print(f"using connection: {connection} "
+                  f"({len(allowed)} allowed for model '{args.project}'; auto-picked first)")
+        else:
+            code, conns = call(base, token, "GET", "/connections")
+            if code != 200 or not isinstance(conns, list) or not conns:
+                sys.exit(f"error: couldn't list connections (HTTP {code}). "
+                         "Pass --connection <name> explicitly.")
+            connection = conns[0]["name"]
+            print(f"using connection: {connection} "
+                  f"({len(conns)} available; auto-picked first)")
 
     # 1. Enter dev mode.
     code, _ = call(base, token, "PATCH", "/session", {"workspace_id": "dev"})
@@ -218,34 +232,37 @@ def main():
             if code != 200:
                 sys.exit(f"[2/4] failed to initialize bare git: HTTP {code} {body}")
         elif code == 422 and isinstance(body, str) and "already exists" in body:
-            # GET 404 + POST 422: the name is taken but this API user can't
-            # reach it -- either a previously-deleted project's remnant
-            # (Looker keeps the name/git registration server-side) or a
-            # project outside this user's model set. No API call can recover
-            # it; the fix is a different name.
-            sys.exit(
-                f"[2/4] project name '{args.project}' is already taken on this "
-                "instance but not accessible to this API user (usually a "
-                "previously-deleted project's remnant).\n"
-                "Re-run bash scripts/bootstrap.sh, answer 'n' at the "
-                "\"Keep these settings?\" prompt, and enter a different "
-                f"LookML project name (e.g. {args.project}_2)."
-            )
+            print(f"[2/4] project '{args.project}' already exists (POST 422), continuing...")
         else:
             sys.exit(f"[2/4] failed to create project: HTTP {code} {body}")
 
-    # PUT can race ahead of Looker's bare-repo creation (500 or 404 on
-    # the first try right after PATCH bare-init); retry briefly.
-    for _ in range(5):
-        code, body = call(base, token, "PUT",
-                          f"/projects/{args.project}/git_branch",
-                          {"name": "master"})
-        if code == 200 or code not in (404, 500):
-            break
-        time.sleep(1)
-    if code != 200:
-        sys.exit(f"[2/4] failed to initialize dev workspace: HTTP {code} {body}")
-    print(f"[2/4] dev workspace ready")
+    # Check if we already have an active git branch in dev mode.
+    code, body = call(base, token, "GET", f"/projects/{args.project}/git_branch")
+    if code == 200 and isinstance(body, dict) and body.get("name"):
+        print(f"[2/4] dev workspace ready (on branch '{body['name']}')")
+    else:
+        # PUT can race ahead of Looker's bare-repo creation (500 or 404 on
+        # the first try right after PATCH bare-init); retry briefly.
+        for branch_name in ["master", "main"]:
+            for _ in range(5):
+                code, body = call(base, token, "PUT",
+                                  f"/projects/{args.project}/git_branch",
+                                  {"name": branch_name})
+                if code == 200 or code not in (404, 500):
+                    break
+                time.sleep(1)
+            if code == 200:
+                break
+
+        if code != 200:
+            # Check once more if a branch became active despite PUT error
+            check_code, check_body = call(base, token, "GET", f"/projects/{args.project}/git_branch")
+            if check_code == 200 and isinstance(check_body, dict) and check_body.get("name"):
+                print(f"[2/4] dev workspace ready (on branch '{check_body['name']}')")
+            else:
+                sys.exit(f"[2/4] failed to initialize dev workspace: HTTP {code} {body}")
+        else:
+            print(f"[2/4] dev workspace ready")
 
     # 3. Write the two files.
     manifest = render(
@@ -257,10 +274,23 @@ def main():
         repo_root / "lookml-template" / "canvas_dashboards.model.lkml.template",
         {"{{CONNECTION_NAME}}": connection})
 
-    for path, content in [
-        ("manifest.lkml", manifest),
-        (f"{args.project}.model.lkml", model),
-    ]:
+    model_paths = []
+    code, existing_files = call(base, token, "GET", f"/projects/{args.project}/files")
+    if code == 200 and isinstance(existing_files, list):
+        for f in existing_files:
+            if isinstance(f, dict) and f.get("path") and f["path"].endswith(f"{args.project}.model.lkml"):
+                model_paths.append(f["path"])
+    if not model_paths:
+        model_paths = [f"models/{args.project}.model.lkml"]
+
+    primary_model_path = next((p for p in model_paths if p.startswith("models/")), model_paths[0])
+
+    for p in model_paths:
+        if p != primary_model_path:
+            enc_path = urllib.parse.quote(p, safe="")
+            call(base, token, "DELETE", f"/projects/{args.project}/files?file_path={enc_path}")
+
+    for path, content in [("manifest.lkml", manifest), (primary_model_path, model)]:
         code, _ = call(base, token, "PUT",
                        f"/projects/{args.project}/files",
                        {"path": path, "content": content})

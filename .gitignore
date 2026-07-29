@@ -1,0 +1,10 @@
+.DS_Store
+looker-config.json
+skills/dashboard-creator/config.json
+scripts/__pycache__/
+scripts/toolbox
+.claude/
+examples/.DS_Store
+skills/.DS_Store
+skills/dashboard-creator/.DS_Store
+apps/

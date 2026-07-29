@@ -14,10 +14,9 @@ set -euo pipefail
 DEF_PATH="${1:?usage: start-preview.sh <path-to-canvasdashboard.html>}"
 PORT="${PORT:-8765}"
 
-# The skill is symlinked into ~/.claude/skills/dashboard-creator, so
-# $0 typically points at the symlinked path. `pwd -P` after `cd`s
-# into the script's directory canonicalizes through any symlinks in
-# the path, so we end up at the real on-disk install location.
+# `pwd -P` after `cd`s into the script's directory canonicalizes
+# through any symlinks in the path, so we end up at the real on-disk
+# install location.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 

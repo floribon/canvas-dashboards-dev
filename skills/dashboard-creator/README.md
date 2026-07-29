@@ -1,17 +1,15 @@
 # dashboard-creator skill
 
-A Claude Code skill for creating new Data Apps against a Looker
+An AI Agent skill for creating new Data Apps against a Looker
 customer's LookML models, previewing locally, and publishing to
 their Looker instance.
 
-This directory is symlinked into `~/.claude/skills/dashboard-creator`
-by `scripts/bootstrap.sh`. See `SKILL.md` for the trigger prompt
-Claude reads.
+This directory contains instructions that agents (Claude Code, Antigravity, Cursor) read to learn how to build dashboards. See `SKILL.md` for the trigger prompt and run-order rules.
 
 ## Layout
 
 ```
-SKILL.md              Trigger + run-order Claude follows
+SKILL.md              Trigger + run-order the agent follows
 config.example.json   Template for the customer's local config
 config.json           Customer-specific config (gitignored — created by bootstrap)
 recipes/              Chart-options snippets for common patterns

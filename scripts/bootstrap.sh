@@ -5,11 +5,10 @@
 # from a git checkout for development). Walks the customer through:
 #   1. genai-toolbox binary download (for the Looker MCP).
 #   2. Looker credentials prompt -> looker-config.json.
-#   3. Symlink the dashboard-creator skill into ~/.claude/skills/.
-#   4. Prompt for default model / explore / publish folder -> skill config.
-#   5. Push the LookML manifest into the customer's Looker via
+#   3. Prompt for default model / explore / publish folder -> skill config.
+#   4. Push the LookML manifest into the customer's Looker via
 #      scripts/install-manifest.py (dev workspace).
-#   6. Print the Looker IDE URL for the manual Commit + Deploy, and
+#   5. Print the Looker IDE URL for the manual Commit + Deploy, and
 #      the verify-install.py command that confirms it worked.
 #
 # Idempotent: re-running is safe. Existing config files are shown
@@ -51,25 +50,23 @@ PY
 
 echo "Data Apps bootstrap — v${VERSION}"
 echo
-echo "[1/6] using install dir: $REPO_ROOT"
+echo "[1/5] using install dir: $REPO_ROOT"
 
 # ----------------------------------------------------------------------
 # 1. Looker MCP via genai-toolbox
 # ----------------------------------------------------------------------
 #
 # The repo ships a project-scoped .mcp.json + scripts/start-toolbox.sh.
-# Claude Code picks them up automatically. We just need:
+# AI agents (like Claude Code, Antigravity, Cursor) pick them up
+# automatically. We just need:
 #   - the toolbox binary downloadable at scripts/toolbox (or set
 #     TOOLBOX_BIN to your own path).
 #   - looker-config.json populated with Looker API credentials so the
 #     start script has something to authenticate with.
 
-CLAUDE_DIR="${HOME}/.claude"
-mkdir -p "$CLAUDE_DIR"
-
 TOOLBOX_BIN_REPO="$REPO_ROOT/scripts/toolbox"
 if [ ! -x "$TOOLBOX_BIN_REPO" ] && [ -z "${TOOLBOX_BIN:-}" ]; then
-  echo "[2/6] genai-toolbox binary not found at $TOOLBOX_BIN_REPO."
+  echo "[2/5] genai-toolbox binary not found at $TOOLBOX_BIN_REPO."
   echo "  The dashboard-creator skill needs it to verify LookML field"
   echo "  names while authoring — without it, drafts fail later with"
   echo "  field_not_found errors."
@@ -91,7 +88,7 @@ if [ ! -x "$TOOLBOX_BIN_REPO" ] && [ -z "${TOOLBOX_BIN:-}" ]; then
     echo "  Skipped. Drop the binary at $TOOLBOX_BIN_REPO before invoking the skill."
   fi
 else
-  echo "[2/6] toolbox binary present."
+  echo "[2/5] toolbox binary present."
 fi
 
 LOOKER_CONFIG_PATH="$REPO_ROOT/looker-config.json"
@@ -103,23 +100,43 @@ prompt_looker_config() {
   echo "  the Looker URL you provide — never sent to Google, Anthropic,"
   echo "  or any third party. See SECURITY.md."
   echo ""
-  read -rp "  Looker instance URL (e.g. https://yourco.looker.app): " LOOKER_URL
+  read -rp "  Looker instance URL [https://meta.looker.com]: " LOOKER_URL
+  LOOKER_URL="${LOOKER_URL:-https://meta.looker.com}"
   read -rp "  Looker API client_id: " LOOKER_CLIENT_ID_IN
   read -rsp "  Looker API client_secret: " LOOKER_CLIENT_SECRET_IN
   echo ""
-  python3 - "$LOOKER_CONFIG_PATH" "$LOOKER_URL" "$LOOKER_CLIENT_ID_IN" "$LOOKER_CLIENT_SECRET_IN" <<'PY'
+  if ask_yn "  Does your Looker instance require an SSO proxy? (e.g. meta.looker.com)"; then
+    USE_PROXY="yes"
+  else
+    USE_PROXY="no"
+  fi
+  echo ""
+  python3 - "$LOOKER_CONFIG_PATH" "$LOOKER_URL" "$LOOKER_CLIENT_ID_IN" "$LOOKER_CLIENT_SECRET_IN" "$USE_PROXY" <<'PY'
 import json, sys
-path, url, cid, sec = sys.argv[1:]
+path, url, cid, sec, use_proxy = sys.argv[1:]
 # Strip trailing slashes; the toolbox concatenates the SDK path
 # directly (`${base_url}/api/4.0/login`), so `https://x.looker.app/`
 # becomes `https://x.looker.app//api/4.0/login` which Looker's edge
 # 403s.
 url = url.rstrip("/")
-open(path, "w").write(json.dumps({
-    "base_url": url,
-    "client_id": cid,
-    "client_secret": sec,
-}, indent=2) + "\n")
+
+if use_proxy == "yes":
+    # For SSO-protected Looker instances (like https://meta.looker.com),
+    # API clients connect to the local looker_sso_proxy on http://127.0.0.1:9999
+    open(path, "w").write(json.dumps({
+        "base_url": "http://127.0.0.1:9999",
+        "target_url": url,
+        "client_id": cid,
+        "client_secret": sec,
+    }, indent=2) + "\n")
+else:
+    # Direct connection without proxy
+    open(path, "w").write(json.dumps({
+        "base_url": url,
+        "target_url": url,
+        "client_id": cid,
+        "client_secret": sec,
+    }, indent=2) + "\n")
 PY
   echo "  Wrote $LOOKER_CONFIG_PATH (gitignored)."
 }
@@ -128,7 +145,7 @@ if [ ! -f "$LOOKER_CONFIG_PATH" ]; then
   prompt_looker_config
 else
   echo "  Existing $LOOKER_CONFIG_PATH found:"
-  show_config "$LOOKER_CONFIG_PATH" base_url client_id client_secret
+  show_config "$LOOKER_CONFIG_PATH" target_url base_url client_id client_secret
   if ask_yn "  Keep these credentials?"; then
     echo "  Keeping existing credentials."
   else
@@ -136,29 +153,26 @@ else
   fi
 fi
 
+LOOKER_BASE_URL="$(python3 -c "import json;print(json.load(open('$LOOKER_CONFIG_PATH'))['base_url'])")"
+if [ "$LOOKER_BASE_URL" = "http://127.0.0.1:9999" ]; then
+  LOOKER_URL_FOR_PROXY="$(python3 -c "import json;cfg=json.load(open('$LOOKER_CONFIG_PATH'));print(cfg.get('target_url', cfg.get('base_url', 'https://meta.looker.com')))")"
+  echo ""
+  echo "  Please execute the following command in a separate terminal before continuing:"
+  echo "    python3 /google/src/head/depot/google3/prototypes/projects/cloudbi_pm_workspace/looker-sso-proxy/looker_sso_proxy.py --target ${LOOKER_URL_FOR_PROXY}"
+  echo ""
+  if [ -t 0 ]; then
+    read -rp "  Press Enter once the proxy is running in your separate terminal... " _dummy
+  fi
+  echo ""
+fi
+
 echo "  Toolbox MCP entry: $REPO_ROOT/.mcp.json (project-scoped, already committed)."
 
 # ----------------------------------------------------------------------
-# 2. Skill symlink
+# 2. Skill config
 # ----------------------------------------------------------------------
 
-SKILLS_DIR="${CLAUDE_DIR}/skills"
-mkdir -p "$SKILLS_DIR"
-SKILL_LINK="${SKILLS_DIR}/dashboard-creator"
 SKILL_SRC="${REPO_ROOT}/skills/dashboard-creator"
-if [ -L "$SKILL_LINK" ]; then
-  echo "[3/6] Skill symlink exists at $SKILL_LINK -- skipping."
-elif [ -e "$SKILL_LINK" ]; then
-  echo "[3/6] $SKILL_LINK exists but isn't a symlink. Leave it alone or rename and rerun."
-else
-  ln -s "$SKILL_SRC" "$SKILL_LINK"
-  echo "[3/6] Symlinked $SKILL_SRC -> $SKILL_LINK."
-fi
-
-# ----------------------------------------------------------------------
-# 3. Skill config
-# ----------------------------------------------------------------------
-
 CONFIG_FILE="${SKILL_SRC}/config.json"
 
 prompt_skill_config() {
@@ -186,7 +200,7 @@ PY
 }
 
 if [ -f "$CONFIG_FILE" ]; then
-  echo "[4/6] Skill config exists at $CONFIG_FILE:"
+  echo "[3/5] Skill config exists at $CONFIG_FILE:"
   show_config "$CONFIG_FILE" looker_instance_url default_model \
     default_explores publish_folder_id project_name tile_js_url
   if ask_yn "  Keep these settings?"; then
@@ -195,15 +209,15 @@ if [ -f "$CONFIG_FILE" ]; then
     prompt_skill_config
   fi
 else
-  echo "[4/6] Writing skill config."
+  echo "[3/5] Writing skill config."
   prompt_skill_config
 fi
 
 # ----------------------------------------------------------------------
-# 4. LookML manifest install
+# 3. LookML manifest install
 # ----------------------------------------------------------------------
 
-echo "[5/6] Installing LookML manifest into Looker's dev workspace..."
+echo "[4/5] Installing LookML manifest into Looker's dev workspace..."
 TILE_URL_FOR_INSTALL="$(python3 -c "import json;print(json.load(open('$CONFIG_FILE')).get('tile_js_url',''))")"
 PROJECT="$(python3 -c "import json;print(json.load(open('$CONFIG_FILE')).get('project_name','canvas_dashboards'))")"
 python3 "$REPO_ROOT/scripts/install-manifest.py" \
@@ -212,11 +226,11 @@ python3 "$REPO_ROOT/scripts/install-manifest.py" \
   --project "$PROJECT"
 
 # ----------------------------------------------------------------------
-# 5. Final manual step (Looker IDE)
+# 4. Final manual step (Looker IDE)
 # ----------------------------------------------------------------------
 
-LOOKER_URL_FROM_CFG="$(python3 -c "import json;print(json.load(open('$LOOKER_CONFIG_PATH'))['base_url'])")"
-echo "[6/6] Finish in the Looker IDE (one-time, 30 seconds):"
+LOOKER_URL_FROM_CFG="$(python3 -c "import json;cfg=json.load(open('$LOOKER_CONFIG_PATH'));print(cfg.get('target_url', cfg.get('base_url')))")"
+echo "[5/5] Finish in the Looker IDE (one-time, 30 seconds):"
 echo "        Open  ${LOOKER_URL_FROM_CFG}/projects/${PROJECT}/files/manifest.lkml"
 echo "        Click Validate LookML -> Commit Changes & Push -> Deploy to Production"
 echo ""
@@ -228,7 +242,7 @@ echo "this last step has to happen through the IDE. verify-install.py "
 echo "probes production and tells you if the deploy step was missed.)"
 
 # ----------------------------------------------------------------------
-# 6. Done
+# 5. Done
 # ----------------------------------------------------------------------
 
 cat <<EOF
@@ -236,13 +250,11 @@ cat <<EOF
 Done.
 
 Next:
-  1. Open Claude Code in this repo (or your own working dir).
-  2. Ask: "Use the dashboard-creator skill to create a sales dashboard
-     against the ${MODEL:-<model>} model with [your spec]."
+  1. Open your AI agent (Claude Code, Antigravity, or Cursor) in this repo.
+  2. Ask it to build a dashboard using the instructions in skills/dashboard-creator/SKILL.md.
   3. Iterate locally; publish when you're happy.
 
 Install dir: $REPO_ROOT
-Skill:       $SKILL_LINK
 Config:      $CONFIG_FILE
 Version:     $VERSION
 

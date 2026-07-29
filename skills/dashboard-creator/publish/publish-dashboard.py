@@ -210,12 +210,9 @@ def call(base, token, method, path, body=None, raise_on_err=True):
 
 
 def publish(args):
-    # Locate config.json. The skill ships symlinked into
-    # ~/.claude/skills/dashboard-creator, so __file__ usually points
-    # through that symlink. Path.resolve() walks the symlink to the
-    # real on-disk install location before we navigate parents, so
-    # skill_root / repo_root land in the actual install dir (not
-    # ~/.claude).
+    # Locate config.json. Path.resolve() ensures we have the real 
+    # on-disk install location before we navigate parents, so
+    # skill_root / repo_root land in the actual install dir.
     script = Path(__file__).resolve()
     skill_root = script.parent.parent              # .../skills/dashboard-creator
     install_root = script.parent.parent.parent.parent  # .../<install dir>

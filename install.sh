@@ -2,13 +2,13 @@
 # Canvas Dashboards -- customer install entry point.
 #
 # Hosted at:
-#   https://storage.googleapis.com/canvas-dashboards-shared/install.sh
+#   https://floribon.github.io/canvas-dashboards-dev/install.sh
 #
 # Customer one-liner:
-#   bash <(curl -fsSL https://storage.googleapis.com/canvas-dashboards-shared/install.sh)
+#   bash <(curl -fsSL https://floribon.github.io/canvas-dashboards-dev/install.sh)
 #
 # This script:
-#   1. Downloads the latest curated tarball from the same GCS bucket.
+#   1. Downloads the latest curated tarball from GitHub Pages.
 #   2. Extracts it to a customer-chosen directory (default
 #      ~/canvas-dashboards), preserving any existing looker-config.json
 #      and skill config.json so re-running this acts as an upgrade.
@@ -19,8 +19,10 @@
 
 set -euo pipefail
 
-BUCKET="${BUCKET:-canvas-dashboards-shared}"
-TARBALL_URL="https://storage.googleapis.com/${BUCKET}/canvas-dashboards.tar.gz"
+VERSION="dev-local"
+echo "Starting Canvas Dashboards Installer v${VERSION}..."
+
+TARBALL_URL="https://floribon.github.io/canvas-dashboards-dev/canvas-dashboards.tar.gz"
 DEFAULT_INSTALL_DIR="${HOME}/canvas-dashboards"
 
 # ----------------------------------------------------------------------
@@ -67,7 +69,7 @@ curl -fsSL -o "$TARBALL" "$TARBALL_URL"
 curl -fsSL -o "$TARBALL.sha256" "${TARBALL_URL}.sha256"
 
 # Verify the checksum published next to the tarball before extracting.
-# GCS serves both files, so this catches truncation/corruption in
+# GitHub Pages serves both files, so this catches truncation/corruption in
 # transit and any mismatch between what release.sh built and what we
 # received. (shasum on macOS, sha256sum on most Linux.)
 echo "verifying checksum..."

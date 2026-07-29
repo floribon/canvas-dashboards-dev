@@ -114,8 +114,8 @@ repo root.
    image is provided, use the default palette baked into the runtime
    CSS.
 
-6. **Write the def.** Output to the user's working dir as
-   `<dashboard-name>.canvasdashboard.html`. The file is a fragment
+6. **Write the def.** Output to the `apps/` directory as
+   `apps/<dashboard-name>.canvasdashboard.html`. The file is a fragment
    in the Data App format described in
    `docs/canvas-dashboard-spec.md` — start with the existing example
    at `examples/_internal/hr_attrition/hr_attrition.canvasdashboard.html`
@@ -134,7 +134,7 @@ repo root.
    preview:
    ```
    bash skills/dashboard-creator/tools/start-preview.sh \
-     <dashboard-name>.canvasdashboard.html
+     apps/<dashboard-name>.canvasdashboard.html
    ```
    This wraps `python3 serve.py` and opens the right URL in the user's
    browser. Iterate conversationally — the user will ask for layout
@@ -144,7 +144,7 @@ repo root.
 8. **Publish only when the user says so.** When they're happy, run:
    ```
    python3 skills/dashboard-creator/publish/publish-dashboard.py \
-     --def <dashboard-name>.canvasdashboard.html \
+     --def apps/<dashboard-name>.canvasdashboard.html \
      --title "<Dashboard Title>"
    ```
    This calls Looker's REST API directly (via urllib — no MCP, no

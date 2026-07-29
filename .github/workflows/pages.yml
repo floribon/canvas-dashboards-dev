@@ -1,0 +1,65 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Tarball
+        run: |
+          mkdir -p dist
+          
+          # Read global version (major.minor)
+          GLOBAL_VERSION=$(cat VERSION 2>/dev/null || echo "unknown")
+          
+          # Inject version (major.minor.patch) using GitHub run number for the patch!
+          FULL_VERSION="${GLOBAL_VERSION}.${{ github.run_number }}"
+          sed "s/^VERSION=\".*\"/VERSION=\"$FULL_VERSION\"/" install.sh > dist/install.sh
+          
+          # Create the tarball excluding github actions, the dist dir, git history, and user data
+          tar -czvf dist/canvas-dashboards.tar.gz \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='github-admin' \
+            --exclude='dist' \
+            --exclude='apps' \
+            --exclude='looker-config.json' \
+            --exclude='.DS_Store' \
+            --exclude='scripts/toolbox' \
+            .
+            
+          # Generate the sha256 checksum
+          cd dist
+          sha256sum canvas-dashboards.tar.gz > canvas-dashboards.tar.gz.sha256
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
