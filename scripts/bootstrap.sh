@@ -279,4 +279,4 @@ echo -e "${BLUE}${BOLD}Config:${NC}      $CONFIG_FILE"
 echo -e "${BLUE}${BOLD}Version:${NC}     $VERSION\n"
 
 echo -e "${YELLOW}To uninstall:${NC} bash $REPO_ROOT/scripts/uninstall.sh"
-echo -e "${YELLOW}Data handling:${NC} see SECURITY.md and PRIVACY.md."
+echo -e "${YELLOW}Data handling:${NC} see $REPO_ROOT/SECURITY.md and $REPO_ROOT/PRIVACY.md."
