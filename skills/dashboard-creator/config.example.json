@@ -1,0 +1,12 @@
+{
+  "looker_instance_url": "https://YOUR-LOOKER-INSTANCE.looker.app",
+  "default_model": "your_lookml_model",
+  "default_explores": ["your_main_explore"],
+  "publish_folder_id": "1",
+  "tile_js_url": "https://storage.googleapis.com/canvas-dashboards-shared/hosts/tile.js",
+  "project_name": "canvas_dashboards",
+  "size_limit_fallback": {
+    "max_def_bytes": 900000,
+    "comment": "def size cap for publish-dashboard.py's def_too_large guard; see SKILL.md for the rationale and the manual def_url escape hatch."
+  }
+}

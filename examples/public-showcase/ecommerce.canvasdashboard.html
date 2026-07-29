@@ -1,0 +1,204 @@
+<!--
+  Public showcase canvas dashboard — Ecommerce.
+
+  Runs against the `basic_order_items` explore in the `basic_ecomm`
+  model that ships pre-installed with every Looker instance (Looker's
+  built-in sample LookML over `bigquery-public-data.thelook_ecommerce`).
+  No LookML to deploy — drop this canvas def into a tile and it just
+  works.
+
+  Exercises:
+    - KPI strip (3 measures)
+    - Dashboard dropdown filter (state) — changing it re-queries the
+      trend chart and the top-users grid live
+    - Column chart with cross-filter (orders by month)
+    - canvas-grid card list (top users by spend, listens to the
+      state dropdown and the cross-filter via the join to basic_users)
+-->
+
+<script>
+  // Top-users grid cell renderer — name + state + email on the left,
+  // total spend on the right.
+  function ecommerceUserCard(params) {
+    const d = params.data || {};
+    const first = (d['basic_users.first_name'] || '').toString();
+    const last = (d['basic_users.last_name'] || '').toString();
+    const name = (first + ' ' + last).trim() || '(unknown)';
+    const spend = '$' + Number(d['basic_order_items.total_sale_price'] || 0)
+      .toLocaleString('en-US', { maximumFractionDigits: 0 });
+    return '<div class="recent-row">'
+      +   '<div>'
+      +     '<div class="recent-emp">' + name + '</div>'
+      +     '<div class="recent-role">' + (d['basic_users.email'] || '') + '</div>'
+      +     '<div class="recent-dept">' + (d['basic_users.state'] || '') + '</div>'
+      +   '</div>'
+      +   '<div>'
+      +     '<div class="recent-date">' + spend + '</div>'
+      +   '</div>'
+      + '</div>';
+  }
+</script>
+
+<canvas-dashboard width="1450" height="977" looker-model="basic_ecomm">
+
+  <!-- Outer frame -->
+  <canvas-text x="45" y="50" width="1360" height="875">
+    <div class="outer-frame"></div>
+  </canvas-text>
+
+  <!-- Inner cards -->
+  <canvas-text x="0" y="0" width="1450" height="977">
+    <div class="inner-card" style="left:65px;   top:155px; width:1320px; height:140px;"></div>
+    <div class="inner-card" style="left:65px;   top:315px; width:840px;  height:575px;"></div>
+    <div class="inner-card" style="left:925px;  top:315px; width:460px;  height:575px;"></div>
+  </canvas-text>
+
+  <!-- Header -->
+  <canvas-tile desktop-only order="0" x="45" y="50" width="1360" height="115">
+    <canvas-text x="80" y="80" width="720" height="58">
+      <div class="dashboard-title">ECOMMERCE SHOWCASE</div>
+    </canvas-text>
+    <canvas-text x="900" y="90" width="490" height="22" style="text-align:right;">
+      <div class="micro" style="letter-spacing:2px; color:var(--cd-ink-muted);">
+        basic_ecomm · sample LookML
+      </div>
+    </canvas-text>
+  </canvas-tile>
+
+  <!-- Dashboard-level dropdown filter. The trend chart and the
+       top-users grid opt in via <canvas-listen filter="state">;
+       changing the selection re-queries both against Looker.
+       Must be a direct child of <canvas-dashboard>; declared after
+       the frame/header so it draws on top (z-order is DOM order). -->
+  <canvas-filter name="state" label="State"
+                 field="basic_users.state"
+                 ui="dropdown"
+                 values="California,Texas,New York,Illinois,Florida"
+                 default=""
+                 x="1120" y="118" width="270" height="24"></canvas-filter>
+
+  <!-- ============================================================ -->
+  <!-- KPI STRIP                                                    -->
+  <!-- ============================================================ -->
+  <canvas-tile order="1" x="85" y="170" width="1300" height="125">
+    <canvas-text x="95" y="178" width="510" height="22">
+      <div class="section-h">OVERVIEW</div>
+    </canvas-text>
+
+    <canvas-kpi x="95"  y="220" width="280" height="80"
+                explore="basic_order_items" query-field="basic_order_items.count"
+                format="int" label="Total&lt;br&gt;Order Items"
+                icon='<div style="background:#ececec;width:32px;height:32px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#7a7a7a;font-size:17px;">&#128722;</div>'></canvas-kpi>
+
+    <canvas-kpi x="450" y="220" width="280" height="80"
+                explore="basic_order_items" query-field="basic_order_items.total_sale_price"
+                format="usd"
+                label="Total&lt;br&gt;Revenue"
+                icon='<div style="background:#ececec;width:32px;height:32px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#7a7a7a;font-size:18px;">&#128181;</div>'></canvas-kpi>
+
+    <canvas-kpi x="805" y="220" width="280" height="80"
+                explore="basic_order_items" query-field="basic_order_items.average_sale_price"
+                format="usd2"
+                label="Avg.&lt;br&gt;Sale Price"
+                icon='<div style="background:#ececec;width:32px;height:32px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#7a7a7a;font-size:17px;">&#9874;</div>'></canvas-kpi>
+  </canvas-tile>
+
+  <!-- ============================================================ -->
+  <!-- ORDERS BY MONTH (cross-filter driver)                        -->
+  <!-- ============================================================ -->
+  <canvas-tile order="2" x="85" y="335" width="820" height="535">
+    <canvas-text x="105" y="345" width="780" height="22">
+      <div class="section-h">ORDER ITEMS BY MONTH</div>
+    </canvas-text>
+    <canvas-text x="105" y="370" width="780" height="18">
+      <div class="micro" style="color:var(--cd-ink-muted);">
+        Click a bar to cross-filter the top-users list →
+      </div>
+    </canvas-text>
+
+    <canvas-chart id="chart-orders-trend" x="105" y="410" width="780" height="450"
+                  explore="basic_order_items">
+      <canvas-listen filter="state"></canvas-listen>
+      <script type="application/json">
+      {
+        "chart": { "type": "column", "spacing": [10, 6, 6, 6] },
+        "xAxis": {
+          "categoryField": "basic_order_items.created_at_month",
+          "lineColor": "#dcdcdc",
+          "tickColor": "#dcdcdc",
+          "labels": { "style": { "color": "#909090", "fontSize": "10px" }, "rotation": -45 }
+        },
+        "yAxis": {
+          "title": { "text": null },
+          "gridLineColor": "#f0f0f0",
+          "labels": { "style": { "color": "#909090", "fontSize": "10px" } }
+        },
+        "tooltip": { "enabled": true, "backgroundColor": "#ffffff",
+                     "borderColor": "#ececec", "borderRadius": 6,
+                     "shadow": false, "useHTML": true,
+                     "style": { "color": "#444444", "fontSize": "11px" } },
+        "legend": { "enabled": false },
+        "plotOptions": {
+          "column": { "color": "#f8c094", "borderWidth": 0,
+                      "pointPadding": 0.02, "groupPadding": 0.06 }
+        },
+        "series": [{ "name": "Order Items", "queryField": "basic_order_items.count" }]
+      }
+      </script>
+    </canvas-chart>
+  </canvas-tile>
+
+  <!-- ============================================================ -->
+  <!-- TOP USERS BY SPEND (canvas-grid card list)                   -->
+  <!-- ============================================================ -->
+  <canvas-tile order="3" x="945" y="335" width="440" height="535">
+    <canvas-text x="965" y="345" width="400" height="22">
+      <div class="section-h">TOP USERS</div>
+    </canvas-text>
+    <canvas-text x="965" y="370" width="400" height="18">
+      <div class="micro" style="color:var(--cd-ink-muted);">
+        By total spend · listens to the state filter + month cross-filter
+      </div>
+    </canvas-text>
+
+    <canvas-grid id="grid-top-users" explore="basic_order_items"
+                 x="965" y="408" width="400" height="450">
+      <canvas-listen filter="state"></canvas-listen>
+      <script type="application/json">
+      {
+        "query": {
+          "fields": [
+            "basic_users.first_name",
+            "basic_users.last_name",
+            "basic_users.email",
+            "basic_users.state",
+            "basic_order_items.total_sale_price"
+          ],
+          "sorts": ["basic_order_items.total_sale_price desc"],
+          "limit": "5"
+        },
+        "grid": {
+          "headerHeight": 0,
+          "rowHeight": 88,
+          "suppressCellFocus": true,
+          "suppressRowHoverHighlight": true,
+          "domLayout": "normal",
+          "columnDefs": [
+            { "headerName": "", "flex": 1,
+              "cellRenderer": "ecommerceUserCard",
+              "cellClass": "cg-recent-card" }
+          ]
+        }
+      }
+      </script>
+    </canvas-grid>
+  </canvas-tile>
+
+  <!-- Footer credit -->
+  <canvas-text x="95" y="905" width="600" height="18">
+    <div style="font-size:10px; letter-spacing:2px; color:var(--cd-ink-muted);">
+      CANVAS DASHBOARDS · PUBLIC SHOWCASE
+    </div>
+  </canvas-text>
+
+</canvas-dashboard>

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "looker": {
+      "command": "bash",
+      "args": ["scripts/start-toolbox.sh"]
+    }
+  }
+}

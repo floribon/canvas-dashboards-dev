@@ -1,0 +1,44 @@
+# Canvas Dashboards — Looker extension manifest.
+#
+# This is a TEMPLATE. `scripts/install-manifest.py` interpolates:
+#   {{PROJECT_NAME}}     — the LookML project name (customer's choice
+#                          at bootstrap; `canvas_dashboards` default).
+#   {{TILE_JS_URL}}      — the runtime bundle URL (Adam's shared bucket
+#                          by default, the customer's own if they
+#                          self-host).
+#   {{TILE_JS_ORIGIN}}   — the origin of {{TILE_JS_URL}}, for the
+#                          external_api_urls entitlement.
+#
+# Once this file is in a Looker LookML project (along with the stub
+# model) and deployed, the "Canvas Dashboard" tile becomes available
+# in the dashboard tile gallery. The canvas-def HTML for each tile is
+# stashed in the dashboard_element's body_text field by the publish
+# step (publish-dashboard.py); the runtime fetches it back via
+# dashboard_element(elementId) on mount.
+
+project_name: "{{PROJECT_NAME}}"
+
+application: canvas_dashboard_tile {
+  label: "Canvas Dashboard"
+  url: "{{TILE_JS_URL}}"
+  mount_points: {
+    dashboard_tile: yes
+  }
+  entitlements: {
+    # core_api_methods used by tile.js:
+    #   run_inline_query  — every query the canvas runs
+    #   dashboard         — read the containing dashboard's filter defs
+    #   dashboard_element — read the canvas def from this tile's
+    #                       body_text (where the publish step stashes it)
+    core_api_methods: ["run_inline_query", "dashboard", "dashboard_element"]
+    external_api_urls: [
+      # bundle host (runtime assets + vendored Looker Extension SDK)
+      # + the pinned-and-SRI'd jsDelivr deps the runtime fetches at boot
+      "{{TILE_JS_ORIGIN}}",
+      "https://cdn.jsdelivr.net"
+    ]
+    use_form_submit: no
+    use_embeds: no
+    use_iframes: no
+  }
+}

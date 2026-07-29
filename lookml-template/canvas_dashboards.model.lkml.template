@@ -1,0 +1,12 @@
+# Stub model file. The application: block in manifest.lkml requires
+# a Looker project to have at least one model file deployed, so we
+# ship this empty stub alongside the manifest.
+#
+# This file is interpolated by the dashboard-creator bootstrap script;
+# {{CONNECTION_NAME}} is replaced with the customer's BigQuery (or
+# other) Looker connection name. The model has no explores or views —
+# it exists only to keep the project deployable. Customers don't need
+# to query against this model; their canvas dashboards reference their
+# *real* LookML models elsewhere in the instance.
+
+connection: "{{CONNECTION_NAME}}"

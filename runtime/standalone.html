@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canvas Dashboard</title>
+<link rel="stylesheet" href="canvas-dashboard.css?v=7">
+<!-- AG Grid Community (used by tabular tiles inside dashboards). SRI hashes
+     pin the file contents — a CDN compromise can't swap them out. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.css"
+      integrity="sha384-LNcL0K2K7L8L9H0XdFjFVke0Q1STyt3EhtpjMIai3xF3YpjvIOIoQlplKoTiaCS0"
+      crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-quartz.css"
+      integrity="sha384-uTU2hjrm7DPUmOLAzmReq/x6GkOLV02xfmo+RhGpMCURmmNbiZGfGouIdpLh9m1u"
+      crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.min.js"
+        integrity="sha384-4h7f/QzMaQuP/2DCJ4zcUcQzIZ3I9WCVELPmW/umU53xAtAlTH5ym7A/qtFqzhxb"
+        crossorigin="anonymous"></script>
+<script src="highcharts.js"></script>
+<!-- Highcharts modules. Order matters: core → more → series-type modules.
+     Pinned to 11.4.8 (matches highcharts.js); SRI sha384 hashes prevent
+     the CDN from substituting different file contents. -->
+<script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.8/highcharts-more.js"
+        integrity="sha384-E5MZlKp6OsxzcS2elFrYMDs+asezSncszxSlDK49djOdfB3HaepyOAAAIAWdSbFc"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.8/modules/solid-gauge.js"
+        integrity="sha384-IBcJTOmP2WtGfF9pbWkfoFMvdU3+G/d4ltdDX5Eu0TnxAe0hMaCU5wB6H8JVZTs1"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.8/modules/funnel.js"
+        integrity="sha384-WRN7Fu1CFgheXTcoeH4XsD4Oy8ezDJgz+RGXHtZ+Mrdi+0bbay8ehVVZvK3OWor3"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.8/modules/treemap.js"
+        integrity="sha384-AHM4JZIkBKtiuZgUOVhClNnx1XE7hMJHb5fKNJw4SjQKpnYiOeGBqAzrM2soSXRV"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.8/modules/exporting.js"
+        integrity="sha384-iIafvPxt7arZGSNeMKRXbEr8N+ijzanJ60dtD21K9navK1tFiY0vuOeGVpIjPD9S"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.8/modules/offline-exporting.js"
+        integrity="sha384-Lj2ktmBW/0wsRwmnbE6m6gp//rkDRovWuhjZP9qbWmPQ3WLDfgW3BZQYiitV37fX"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.8/modules/accessibility.js"
+        integrity="sha384-RFRqB325VNHIIuDAhM+VeFF+SkZwLBzZioBGl5Eklzl88CWphk90Q7ACAcOt8R8R"
+        crossorigin="anonymous"></script>
+<script src="canvas-dashboard.js?v=29"></script>
+<script src="host-common.js?v=6"></script>
+<script src="host-standalone.js?v=3" defer></script>
+<style>
+  body { background: var(--cd-bg); margin: 0; }
+</style>
+</head>
+<body></body>
+</html>

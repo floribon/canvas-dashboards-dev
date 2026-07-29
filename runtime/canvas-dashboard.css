@@ -1,0 +1,882 @@
+/* canvas-dashboard.css — defaults for the runtime's elements. */
+
+:root {
+  --cd-bg: #f6f6f6;             /* sampled outer page bg */
+  --cd-frame: #fefcf9;          /* outer translucent frame — nearly white */
+  --cd-card: #ffffff;           /* inner cards */
+  --cd-ink: #5a5a5a;            /* primary text — softer */
+  --cd-ink-strong: #444444;     /* desaturated darker text */
+  --cd-ink-muted: #9a9a9a;
+  --cd-accent: #f8c094;         /* sampled orange — "Attrition" */
+  --cd-accent-strong: #ec9f78;
+  --cd-dark: #555555;           /* desaturated retention/total */
+  --cd-gray: #d8d8d8;
+  --cd-divider: #ececec;
+  --cd-shadow-frame: 0 2px 8px rgba(120,90,70,0.06);
+  --cd-shadow-card: 0 1px 3px rgba(0,0,0,0.03), 0 4px 14px rgba(0,0,0,0.03);
+  --cd-font: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--cd-bg);
+  font-family: var(--cd-font);
+  color: var(--cd-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+canvas-dashboard {
+  background: var(--cd-bg);
+}
+
+/* Card-style container — opt-in via class="card" on canvas-shape or canvas-text */
+.card {
+  background: var(--cd-card);
+  border-radius: 14px;
+  box-shadow: var(--cd-shadow);
+}
+
+/* KPI */
+canvas-kpi { box-sizing: border-box; }
+.canvas-kpi-wrap {
+  display: flex;
+  align-items: flex-start;       /* icon aligns to the top of the value */
+  gap: 12px;
+  height: 100%;
+  padding-top: 2px;
+}
+.canvas-kpi-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  background: #ececec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cd-ink-muted);
+  font-size: 17px;
+  flex: 0 0 auto;
+}
+.canvas-kpi-body { display: flex; flex-direction: column; gap: 4px; }
+.canvas-kpi-value {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: var(--cd-ink-strong);
+  line-height: 1;
+}
+.canvas-kpi-unit {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--cd-ink-strong);
+  margin-left: 2px;
+}
+.canvas-kpi-label {
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--cd-ink-muted);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* Inline variant — bare icon glyph, value + label on one row. */
+.canvas-kpi-wrap.variant-inline {
+  align-items: baseline;
+  gap: 6px;
+  padding-top: 0;
+}
+.canvas-kpi-wrap.variant-inline .canvas-kpi-icon {
+  width: auto;
+  height: auto;
+  background: transparent;
+  border-radius: 0;
+  color: var(--cd-ink-strong);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+.canvas-kpi-wrap.variant-inline .canvas-kpi-body {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+.canvas-kpi-wrap.variant-inline .canvas-kpi-value {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.canvas-kpi-wrap.variant-inline .canvas-kpi-unit {
+  font-size: 14px;
+  font-weight: 700;
+  margin-left: 0;
+}
+.canvas-kpi-wrap.variant-inline .canvas-kpi-label {
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* Text element defaults */
+canvas-text { box-sizing: border-box; color: var(--cd-ink); }
+canvas-text .section-title {
+  font-size: 15px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--cd-ink);
+}
+canvas-text .section-sub {
+  font-size: 11px;
+  color: var(--cd-ink-muted);
+  font-style: italic;
+}
+canvas-text .dashboard-title {
+  font-size: 32px;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  font-weight: 400;
+  color: var(--cd-ink-strong);
+  text-shadow:
+    0 1px 1px rgba(0,0,0,0.14),
+    0 2px 4px rgba(80,40,20,0.10);
+}
+canvas-text .legend-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+canvas-text .micro {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--cd-ink-muted);
+}
+canvas-text .delta {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* CSS donut — uses --attrition: 0%..100% as the orange arc fraction. */
+.cd-donut {
+  position: relative;
+  display: inline-block;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--cd-accent) 0 var(--attrition, 0%),
+    var(--cd-dark) var(--attrition, 0%) 100%
+  );
+}
+.cd-donut::after {
+  content: '';
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: var(--cd-card);
+}
+.cd-donut-num-attrition {
+  position: absolute;
+  top: -4px;
+  right: -12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cd-accent-strong);
+}
+/* Larger "current" value — sits to the lower-left of the donut so the rows stack neatly */
+.cd-donut-num-current {
+  position: absolute;
+  bottom: -18px;
+  left: -4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cd-ink-strong);
+}
+
+/* Survey heatmap grid — rows stretch to fill the grid's parent height */
+.survey-grid {
+  display: grid;
+  grid-template-columns: 110px repeat(4, 1fr);
+  grid-auto-rows: 1fr;             /* equal-height rows that fill the container */
+  gap: 8px 4px;
+  font-size: 11px;
+  height: 100%;
+}
+.survey-row-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--cd-ink-strong);
+  align-self: center;
+  line-height: 1.3;
+}
+.survey-cell {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  text-align: center;
+  min-height: 0;
+}
+.survey-cell .top, .survey-cell .bot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 2px;
+}
+.survey-cell .top { color: var(--cd-ink-strong); }   /* attrition — orange shade */
+.survey-cell .bot { color: #fff; }                   /* current — dark shade */
+.survey-col-header {
+  text-align: center;
+  font-size: 11px;
+  color: var(--cd-ink-muted);
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+/* Job Role list — fills its container by stretching rows */
+.role-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+/* canvas-grid (AG Grid) — make it blend into the canvas-dashboard look.
+   We strip AG Grid's chrome (borders, hover, focus, header) and reuse
+   the chip styles defined for the legacy .role-attrition/.role-current
+   classes so the JOB ROLE table looks identical to its old hand-rolled
+   list. */
+canvas-grid {
+  display: block;
+  font-family: var(--cd-font);
+}
+canvas-grid .ag-root-wrapper,
+canvas-grid .ag-root-wrapper-body,
+canvas-grid .ag-root,
+canvas-grid .ag-body-viewport {
+  background: transparent;
+  border: none;
+}
+canvas-grid .ag-row {
+  background: transparent;
+  border-color: transparent;
+  color: var(--cd-ink-strong);
+  font-size: 12px;
+}
+canvas-grid .ag-cell {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border: none;
+}
+canvas-grid .ag-cell.cg-rank {
+  color: var(--cd-ink-muted);
+  font-size: 11px;
+  padding-left: 0;
+}
+canvas-grid .ag-cell.cg-role-name {
+  color: var(--cd-ink-strong);
+}
+canvas-grid .ag-cell.cg-cell-center {
+  justify-content: center;
+  padding: 0 4px;
+}
+canvas-grid .ag-cell .role-attrition,
+canvas-grid .ag-cell .role-current {
+  display: inline-block;
+  min-width: 36px;
+  padding: 5px 0;
+  border-radius: 3px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 12px;
+}
+canvas-grid .ag-cell .role-attrition { background: var(--cd-accent); color: var(--cd-ink-strong); }
+canvas-grid .ag-cell .role-current   { background: var(--cd-dark);   color: #fff; }
+canvas-grid .ag-header { display: none; }
+canvas-grid .ag-row-hover { background: transparent !important; }
+
+/* SURVEY SCORE grid — heatmap layout. Restore the header (globally
+   hidden above) and stretch each cell so the inner .survey-cell fills
+   the row vertically. */
+canvas-grid#grid-survey .ag-header,
+canvas-grid.cd-heatmap .ag-header,
+canvas-grid#grid-survey .ag-header-row,
+canvas-grid.cd-heatmap .ag-header-row,
+canvas-grid#grid-survey .ag-header-viewport,
+canvas-grid.cd-heatmap .ag-header-viewport,
+canvas-grid#grid-survey .ag-header-container,
+canvas-grid.cd-heatmap .ag-header-container,
+canvas-grid#grid-survey .ag-header-cell,
+canvas-grid.cd-heatmap .ag-header-cell {
+  display: flex;
+  background: transparent;
+  border: none;
+}
+canvas-grid#grid-survey .ag-header-row,
+canvas-grid.cd-heatmap .ag-header-row { width: 100%; }
+canvas-grid#grid-survey .ag-header-cell,
+canvas-grid.cd-heatmap .ag-header-cell { padding: 0 4px; }
+canvas-grid#grid-survey .ag-header-cell.cg-survey-score-header .ag-header-cell-text,
+canvas-grid.cd-heatmap .ag-header-cell.cg-survey-score-header .ag-header-cell-text {
+  font-size: 9px;
+  color: var(--cd-ink-muted);
+  letter-spacing: 1.5px;
+  font-weight: 500;
+}
+canvas-grid#grid-survey .ag-header-cell.cg-survey-col-header,
+canvas-grid.cd-heatmap .ag-header-cell.cg-survey-col-header {
+  justify-content: center;
+}
+canvas-grid#grid-survey .ag-header-cell.cg-survey-col-header .ag-header-cell-text,
+canvas-grid.cd-heatmap .ag-header-cell.cg-survey-col-header .ag-header-cell-text {
+  font-size: 11px;
+  color: var(--cd-ink-muted);
+  letter-spacing: 1px;
+  font-weight: 500;
+  text-align: center;
+}
+canvas-grid#grid-survey .ag-cell.cg-survey-label,
+canvas-grid.cd-heatmap .ag-cell.cg-survey-label {
+  font-size: 11px;
+  color: var(--cd-ink-strong);
+  line-height: 1.3;
+  font-weight: 500;
+  padding: 0 4px 0 0;
+}
+canvas-grid#grid-survey .ag-cell.cg-survey-heat,
+canvas-grid.cd-heatmap .ag-cell.cg-survey-heat {
+  display: block;
+  padding: 4px 2px;
+}
+canvas-grid#grid-survey .ag-cell.cg-survey-heat .survey-cell,
+canvas-grid.cd-heatmap .ag-cell.cg-survey-heat .survey-cell {
+  width: 100%;
+  height: 100%;
+}
+
+/* RECENT ATTRITION grid — one card per row. The AG cell is just a
+   block container; the orange left-rule and two-column layout live on
+   the inner .recent-row. */
+canvas-grid#grid-recent .ag-cell.cg-recent-card,
+canvas-grid.cd-cards .ag-cell.cg-recent-card {
+  display: block;
+  padding: 0;
+}
+canvas-grid#grid-recent .ag-cell.cg-recent-card .recent-row,
+canvas-grid.cd-cards .ag-cell.cg-recent-card .recent-row {
+  height: 100%;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+}
+
+.role-row {
+  display: grid;
+  grid-template-columns: 14px 1fr 38px 38px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.role-rank { color: var(--cd-ink-muted); font-size: 11px; }
+.role-name { color: var(--cd-ink-strong); font-size: 12px; }
+.role-attrition,
+.role-current {
+  text-align: center;
+  padding: 9px 0;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.2;
+  min-width: 36px;
+}
+.role-attrition {
+  background: var(--cd-accent);
+  color: var(--cd-ink-strong);
+}
+.role-current {
+  background: var(--cd-dark);
+  color: #fff;
+}
+
+/* Dept row — donut cell sized to fit the Highcharts pie *plus* its
+   dataLabels, which sit just outside the pie at slice midpoints. */
+.dept-row {
+  display: grid;
+  grid-template-columns: 56px 100px;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 2px;
+}
+.dept-row:last-child { margin-bottom: 0; }
+.dept-label {
+  font-size: 12px;
+  color: var(--cd-ink-strong);
+  align-self: center;
+}
+.dept-donut-cell {
+  position: relative;
+  width: 100px;
+  height: 70px;
+}
+
+/* Recent Attrition cards */
+.recent-list { display: flex; flex-direction: column; gap: 14px; }
+.recent-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  padding: 6px 0 6px 10px;
+  border-left: 3px solid var(--cd-accent);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.recent-emp { font-weight: 700; font-size: 13px; color: var(--cd-ink); }
+.recent-role { font-size: 11px; color: var(--cd-ink); margin-top: 2px; }
+.recent-dept { font-size: 10px; color: var(--cd-ink-muted); font-style: italic; margin-top: 2px; }
+.recent-date { color: var(--cd-accent-strong); font-style: italic; margin-bottom: 2px; }
+.recent-row .v { color: var(--cd-ink); }
+
+/* Section headers / dividers */
+.section-h {
+  font-size: 15px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--cd-ink-strong);
+}
+.section-sub-h {
+  font-size: 12px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--cd-ink-strong);
+}
+.hr-h {
+  height: 1px;
+  background: var(--cd-divider);
+}
+
+/* Period selector pills — label wraps a real radio input.
+   The radio is visually hidden; the pill flips style on :has(input:checked). */
+.period-pills { display: inline-flex; gap: 4px; }
+.period-pill {
+  width: 22px; height: 22px;
+  border: 1px solid var(--cd-divider);
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--cd-ink);
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+}
+.period-pill input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+.period-pill:has(input:checked) {
+  background: var(--cd-dark);
+  color: #fff;
+  border-color: var(--cd-dark);
+}
+
+/* Coral blob background (purely decorative) */
+.coral-blob {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%,
+    rgba(248,192,148,0.45) 0%,
+    rgba(248,192,148,0.25) 35%,
+    rgba(248,192,148,0.08) 60%,
+    transparent 75%);
+  pointer-events: none;
+}
+
+/* Outer translucent frame — the rounded "page" around everything */
+.outer-frame {
+  position: absolute;
+  inset: 0;
+  background: var(--cd-frame);
+  background-image:
+    /* gentle peach wash inside the frame — the 4 balls also bleed through */
+    radial-gradient(280px 200px at 14% 0%, rgba(248,192,148,0.55), transparent 60%),
+    radial-gradient(260px 200px at 88% 5%, rgba(248,192,148,0.50), transparent 60%),
+    radial-gradient(300px 220px at 0% 95%, rgba(248,192,148,0.45), transparent 60%);
+  border-radius: 22px;
+  box-shadow: var(--cd-shadow-frame);
+}
+
+/* The 4 peach "balls" that sit in the outer cream area around the frame.
+   They straddle the frame edge — half outside (visible on the cream) and
+   half inside (bleeding through the translucent frame). */
+.peach-ball {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 32%,
+    rgba(255,224,196,0.62) 0%,
+    rgba(248,192,148,0.58) 30%,
+    rgba(240,168,128,0.42) 60%,
+    rgba(240,168,128,0.18) 82%,
+    rgba(240,168,128,0.04) 95%,
+    transparent 100%);
+  pointer-events: none;
+}
+
+/* Inner white card (one per vertical strip) */
+.inner-card {
+  position: absolute;
+  background: var(--cd-card);
+  border-radius: 14px;
+  box-shadow: var(--cd-shadow-card);
+}
+
+/* Everest Group brand mark — uses the cropped logo PNG */
+.everest-logo {
+  display: inline-block;
+  width: 188px;
+  height: 28px;
+  background-image: url(assets/everest_group_logo.png);
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: right center;
+  vertical-align: middle;
+}
+
+/* Filter UI control — minimal label + input/select baseline.
+   Authors can override via class= / style= on the <canvas-filter> element.
+   Renders in tile mode too — see the <canvas-filter> section of
+   docs/canvas-dashboard-spec.md for why tiles no longer hide it. */
+canvas-filter {
+  box-sizing: border-box;
+  font-family: var(--cd-font);
+  display: inline-block;
+}
+.canvas-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--cd-ink-muted);
+  width: 100%;
+}
+.canvas-filter-name {
+  white-space: nowrap;
+}
+.canvas-filter-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  color: var(--cd-ink);
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  padding: 4px 8px;
+  outline: none;
+}
+.canvas-filter-input:focus {
+  border-color: var(--cd-accent-strong);
+}
+
+/* Toggle (just visual) */
+.toggle {
+  display: inline-block;
+  width: 36px;
+  height: 18px;
+  background: #ddd;
+  border-radius: 999px;
+  position: relative;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 14px; height: 14px;
+  background: #fff;
+  border-radius: 50%;
+}
+
+/* =====================================================================
+   <canvas-tile> + mobile layout
+   =====================================================================
+   Desktop: a tile is just a positioned box; its children resolve their
+   absolute coordinates against it (applyBox subtracts the tile's x/y).
+   Mobile (viewport < 600px): the dashboard switches to a flex column,
+   non-tile/non-chart direct children are hidden, and each tile is
+   transform-scaled by the runtime to fit the viewport width. Authors
+   opt-in via mobile-only / desktop-only boolean attributes on a tile.
+   ===================================================================== */
+
+canvas-tile {
+  display: block;
+  box-sizing: border-box;
+}
+
+canvas-tile[mobile-only]  { display: none; }
+canvas-tile[desktop-only] { display: block; }
+
+@media (max-width: 600px) {
+  canvas-dashboard[data-viewport="mobile"] {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--cd-bg);
+    padding: 8px;
+    gap: 8px;
+  }
+  /* Hide every direct child of the dashboard that isn't a tile or chart.
+     Decorative shapes/texts/KPIs that aren't wrapped in a tile won't
+     appear on mobile (authors wrap things they care about). */
+  canvas-dashboard[data-viewport="mobile"] > :not(canvas-tile):not(canvas-chart) {
+    display: none !important;
+  }
+  /* In mobile flex flow, tiles lose absolute positioning so they stack.
+     The runtime sets transform + scaled width/height per tile so each
+     fits the viewport width while preserving internal layout. */
+  canvas-dashboard[data-viewport="mobile"] > canvas-tile,
+  canvas-dashboard[data-viewport="mobile"] > canvas-chart {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    margin: 0 auto;
+    background: var(--cd-card);
+    border-radius: 10px;
+    box-shadow: var(--cd-shadow-card);
+    overflow: hidden;
+  }
+  canvas-tile[mobile-only]  { display: block; }
+  canvas-tile[desktop-only] { display: none !important; }
+}
+
+/* --------------------------------------------------------------------
+   Viewer polish: loading / error / empty states, per-tile export menu,
+   refresh control, refreshed footer, and print styles.
+   -------------------------------------------------------------------- */
+
+.cd-state-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+/* Skeleton loading: subtle shimmer bars sized to the mount. Avoids the
+   jarring "blank then pop" we had with the LOADING… text overlay. */
+.cd-loading-skeleton {
+  background: transparent;
+}
+.cd-loading-skeleton .cd-skeleton-bar {
+  width: 80%;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.04) 0%,
+    rgba(0,0,0,0.08) 50%,
+    rgba(0,0,0,0.04) 100%);
+  background-size: 200% 100%;
+  animation: cd-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+.cd-loading-skeleton .cd-skeleton-bar:nth-child(2) { width: 60%; }
+.cd-loading-skeleton .cd-skeleton-bar:nth-child(3) { width: 70%; }
+@keyframes cd-skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Error card: red-tinted, includes Retry + Copy details buttons. */
+.cd-error-card {
+  background: #fff5f3;
+  border: 1px solid #f3c0b6;
+  border-radius: 8px;
+  color: #8a3a2c;
+  text-align: center;
+}
+.cd-error-icon {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: #d9534f;
+  color: #fff;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.cd-error-message {
+  font-size: 11.5px;
+  line-height: 1.35;
+  max-width: 90%;
+  word-break: break-word;
+  max-height: 6em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cd-error-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.cd-error-btn {
+  background: #ffffff;
+  border: 1px solid #e3b3a8;
+  color: #8a3a2c;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.cd-error-btn:hover { background: #fdeae5; }
+
+/* Empty card: neutral grey "no data" state. */
+.cd-empty-card {
+  color: var(--cd-ink-muted);
+  text-align: center;
+}
+.cd-empty-icon {
+  font-size: 22px;
+  color: #c8c8c8;
+  line-height: 1;
+}
+.cd-empty-message {
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+
+/* Per-tile menu button: small "⋯" in the top-right of charts/grids.
+   Hidden by default; reveals on hover. Doesn't print (see @media print). */
+canvas-chart, canvas-grid { position: relative; }
+.cd-tile-menu-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,0.7);
+  color: var(--cd-ink-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms;
+  font-family: inherit;
+  z-index: 5;
+}
+canvas-tile:hover .cd-tile-menu-btn,
+canvas-chart:hover .cd-tile-menu-btn,
+canvas-grid:hover .cd-tile-menu-btn,
+.cd-tile-menu-btn:focus-visible { opacity: 1; }
+.cd-tile-menu-btn:hover { border-color: #ececec; background: #fff; }
+
+.cd-tile-menu {
+  position: absolute;
+  top: 36px;
+  right: 8px;
+  min-width: 140px;
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 6px;
+  box-shadow: var(--cd-shadow-card);
+  padding: 4px 0;
+  z-index: 6;
+  font-size: 12px;
+}
+.cd-tile-menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--cd-ink-strong);
+  cursor: pointer;
+}
+.cd-tile-menu-item:hover { background: #f6f6f6; }
+
+/* <canvas-refresh> button. */
+canvas-refresh { box-sizing: border-box; }
+.cd-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #ececec;
+  border-radius: 6px;
+  padding: 4px 10px;
+  color: var(--cd-ink-strong);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.cd-refresh-btn:hover { background: #f6f6f6; }
+.cd-refresh-icon { font-size: 13px; }
+
+/* Dashboard-level "Updated X ago" footer (opt-in). */
+.cd-refreshed-footer {
+  position: absolute;
+  bottom: 6px;
+  right: 10px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--cd-ink-muted);
+  pointer-events: none;
+}
+
+/* Print stylesheet: simple PDF export via the browser's native print.
+   Stacks tiles vertically, hides chrome (menus, refresh buttons, the
+   refreshed-footer). Authors can override by adding their own
+   @media print rules. */
+@media print {
+  html, body { background: #fff !important; }
+  canvas-dashboard {
+    width: auto !important;
+    height: auto !important;
+    transform: none !important;
+    overflow: visible !important;
+    display: block !important;
+    background: #fff !important;
+  }
+  canvas-dashboard > canvas-tile,
+  canvas-dashboard > canvas-chart,
+  canvas-dashboard > canvas-grid {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
+    margin: 0 auto 12px;
+    box-shadow: none !important;
+    border: 1px solid #eaeaea;
+    border-radius: 8px;
+    overflow: visible !important;
+  }
+  .cd-tile-menu-btn,
+  .cd-tile-menu,
+  .cd-refreshed-footer,
+  canvas-refresh,
+  canvas-filter {
+    display: none !important;
+  }
+}
