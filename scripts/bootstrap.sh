@@ -16,6 +16,14 @@
 
 set -euo pipefail
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
 DEFAULT_TILE_JS_URL="https://storage.googleapis.com/canvas-dashboards-shared/hosts/tile.js"
 
 # Resolve the install root (the directory containing this script's
@@ -30,7 +38,7 @@ VERSION="$(cat "$REPO_ROOT/VERSION" 2>/dev/null || echo "unknown")"
 # Yes/no prompt defaulting to yes. Returns 0 unless the answer is n/N.
 ask_yn() {
   local ans
-  read -rp "$1 [Y/n]: " ans
+  read -rp "$(echo -e "${BOLD}$1 [${YELLOW}Y/n${NC}${BOLD}]: ${NC}")" ans
   [ "${ans:-Y}" != "n" ] && [ "${ans:-Y}" != "N" ]
 }
 
@@ -40,17 +48,31 @@ show_config() {
   python3 - "$@" <<'PY'
 import json, sys
 cfg = json.load(open(sys.argv[1]))
-for k in sys.argv[2:]:
-    if k == "client_secret":
-        print(f"    {k}: (hidden)" if k in cfg else f"    {k}: (missing)")
-    else:
-        print(f"    {k}: {cfg.get(k, '(missing)')}")
+keys = sys.argv[2:]
+
+if "target_url" in keys or "base_url" in keys:
+    target = cfg.get("target_url", cfg.get("base_url", "(missing)"))
+    is_proxy = cfg.get("base_url") == "http://127.0.0.1:9999"
+    print(f"    \033[1mLooker URL\033[0m: \033[0;33m{target}\033[0m")
+    print(f"    \033[1mSSO proxy\033[0m: \033[0;33m{'yes' if is_proxy else 'no'}\033[0m")
+    for k in ["client_id", "client_secret"]:
+        if k in keys:
+            val = cfg.get(k, "(missing)")
+            if k == "client_secret" and val != "(missing)": val = "(hidden)"
+            print(f"    \033[1m{k}\033[0m: \033[0;33m{val}\033[0m")
+else:
+    for k in keys:
+        if k == "tile_js_url": continue
+        val = cfg.get(k, '(missing)')
+        if isinstance(val, list): val = ", ".join(val)
+        if k == "client_secret" and val != "(missing)":
+            val = "(hidden)"
+        print(f"    \033[1m{k}\033[0m: \033[0;33m{val}\033[0m")
 PY
 }
 
-echo "Data Apps bootstrap — v${VERSION}"
-echo
-echo "[1/5] using install dir: $REPO_ROOT"
+echo -e "${BLUE}${BOLD}Data Apps bootstrap — v${VERSION}${NC}\n"
+echo -e "${BLUE}${BOLD}[1/5]${NC} using install dir: ${BOLD}$REPO_ROOT${NC}"
 
 # ----------------------------------------------------------------------
 # 1. Looker MCP via genai-toolbox
@@ -66,7 +88,7 @@ echo "[1/5] using install dir: $REPO_ROOT"
 
 TOOLBOX_BIN_REPO="$REPO_ROOT/scripts/toolbox"
 if [ ! -x "$TOOLBOX_BIN_REPO" ] && [ -z "${TOOLBOX_BIN:-}" ]; then
-  echo "[2/5] genai-toolbox binary not found at $TOOLBOX_BIN_REPO."
+  echo -e "\n${BLUE}${BOLD}[2/5]${NC} genai-toolbox binary not found at ${BOLD}$TOOLBOX_BIN_REPO${NC}."
   echo "  The dashboard-creator skill needs it to verify LookML field"
   echo "  names while authoring — without it, drafts fail later with"
   echo "  field_not_found errors."
@@ -83,12 +105,12 @@ if [ ! -x "$TOOLBOX_BIN_REPO" ] && [ -z "${TOOLBOX_BIN:-}" ]; then
     echo "  Downloading $URL ..."
     curl -fsSL -o "$TOOLBOX_BIN_REPO" "$URL"
     chmod +x "$TOOLBOX_BIN_REPO"
-    echo "  Saved to $TOOLBOX_BIN_REPO ($($TOOLBOX_BIN_REPO --version))."
+    echo -e "  Saved to ${BOLD}$TOOLBOX_BIN_REPO${NC} ($($TOOLBOX_BIN_REPO --version))."
   else
-    echo "  Skipped. Drop the binary at $TOOLBOX_BIN_REPO before invoking the skill."
+    echo -e "  ${YELLOW}Skipped.${NC} Drop the binary at $TOOLBOX_BIN_REPO before invoking the skill."
   fi
 else
-  echo "[2/5] toolbox binary present."
+  echo -e "\n${BLUE}${BOLD}[2/5]${NC} toolbox binary present."
 fi
 
 LOOKER_CONFIG_PATH="$REPO_ROOT/looker-config.json"
@@ -96,14 +118,14 @@ LOOKER_CONFIG_PATH="$REPO_ROOT/looker-config.json"
 prompt_looker_config() {
   echo ""
   echo "  Your Looker API credentials will be stored locally in"
-  echo "  $LOOKER_CONFIG_PATH (gitignored). They are used only against"
+  echo -e "  ${YELLOW}$LOOKER_CONFIG_PATH${NC} (gitignored). They are used only against"
   echo "  the Looker URL you provide — never sent to Google, Anthropic,"
   echo "  or any third party. See SECURITY.md."
   echo ""
-  read -rp "  Looker instance URL [https://meta.looker.com]: " LOOKER_URL
+  read -rp "$(echo -e "  ${BOLD}Looker instance URL [${YELLOW}https://meta.looker.com${NC}${BOLD}]: ${NC}")" LOOKER_URL
   LOOKER_URL="${LOOKER_URL:-https://meta.looker.com}"
-  read -rp "  Looker API client_id: " LOOKER_CLIENT_ID_IN
-  read -rsp "  Looker API client_secret: " LOOKER_CLIENT_SECRET_IN
+  read -rp "$(echo -e "  ${BOLD}Looker API client_id: ${NC}")" LOOKER_CLIENT_ID_IN
+  read -rsp "$(echo -e "  ${BOLD}Looker API client_secret: ${NC}")" LOOKER_CLIENT_SECRET_IN
   echo ""
   if ask_yn "  Does your Looker instance require an SSO proxy? (e.g. meta.looker.com)"; then
     USE_PROXY="yes"
@@ -138,16 +160,16 @@ else:
         "client_secret": sec,
     }, indent=2) + "\n")
 PY
-  echo "  Wrote $LOOKER_CONFIG_PATH (gitignored)."
+  echo -e "  Wrote ${YELLOW}$LOOKER_CONFIG_PATH${NC} (gitignored)."
 }
 
 if [ ! -f "$LOOKER_CONFIG_PATH" ]; then
   prompt_looker_config
 else
-  echo "  Existing $LOOKER_CONFIG_PATH found:"
+  echo -e "  Existing ${YELLOW}$LOOKER_CONFIG_PATH${NC} found:"
   show_config "$LOOKER_CONFIG_PATH" target_url base_url client_id client_secret
   if ask_yn "  Keep these credentials?"; then
-    echo "  Keeping existing credentials."
+    echo -e "  ${GREEN}Keeping existing credentials.${NC}"
   else
     prompt_looker_config
   fi
@@ -157,16 +179,16 @@ LOOKER_BASE_URL="$(python3 -c "import json;print(json.load(open('$LOOKER_CONFIG_
 if [ "$LOOKER_BASE_URL" = "http://127.0.0.1:9999" ]; then
   LOOKER_URL_FOR_PROXY="$(python3 -c "import json;cfg=json.load(open('$LOOKER_CONFIG_PATH'));print(cfg.get('target_url', cfg.get('base_url', 'https://meta.looker.com')))")"
   echo ""
-  echo "  Please execute the following command in a separate terminal before continuing:"
-  echo "    python3 /google/src/head/depot/google3/prototypes/projects/cloudbi_pm_workspace/looker-sso-proxy/looker_sso_proxy.py --target ${LOOKER_URL_FOR_PROXY}"
+  echo -e "  ${RED}${BOLD}Please execute the following command in a separate terminal before continuing:${NC}"
+  echo -e "    ${CYAN}python3 /google/src/head/depot/google3/prototypes/projects/cloudbi_pm_workspace/looker-sso-proxy/looker_sso_proxy.py --target ${LOOKER_URL_FOR_PROXY}${NC}"
   echo ""
   if [ -t 0 ]; then
-    read -rp "  Press Enter once the proxy is running in your separate terminal... " _dummy
+    read -rp "$(echo -e "  ${BOLD}Press Enter once the proxy is running in your separate terminal... ${NC}")" _dummy
   fi
   echo ""
 fi
 
-echo "  Toolbox MCP entry: $REPO_ROOT/.mcp.json (project-scoped, already committed)."
+echo -e "  Toolbox MCP entry: ${YELLOW}$REPO_ROOT/.mcp.json${NC} (project-scoped, already committed)."
 
 # ----------------------------------------------------------------------
 # 2. Skill config
@@ -177,11 +199,11 @@ CONFIG_FILE="${SKILL_SRC}/config.json"
 
 prompt_skill_config() {
   LOOKER_URL="$(python3 -c "import json;print(json.load(open('$LOOKER_CONFIG_PATH'))['base_url'])")"
-  read -rp "  Default LookML model (e.g. basic_ecomm): " MODEL
-  read -rp "  Default explore in that model (e.g. basic_order_items): " EXPLORE
-  read -rp "  Looker folder ID to publish dashboards into [1]: " FOLDER
+  read -rp "$(echo -e "  ${BOLD}Default LookML model (e.g. basic_ecomm): ${NC}")" MODEL
+  read -rp "$(echo -e "  ${BOLD}Default explore in that model (e.g. basic_order_items): ${NC}")" EXPLORE
+  read -rp "$(echo -e "  ${BOLD}Looker folder ID to publish dashboards into [${YELLOW}1${NC}${BOLD}]: ${NC}")" FOLDER
   FOLDER="${FOLDER:-1}"
-  read -rp "  LookML project name to create in Looker [canvas_dashboards]: " PROJECT
+  read -rp "$(echo -e "  ${BOLD}LookML project name to create in Looker [${YELLOW}canvas_dashboards${NC}${BOLD}]: ${NC}")" PROJECT
   PROJECT="${PROJECT:-canvas_dashboards}"
   TILE_URL="$DEFAULT_TILE_JS_URL"
   python3 - "$CONFIG_FILE" "$LOOKER_URL" "$MODEL" "$EXPLORE" "$FOLDER" "$TILE_URL" "$PROJECT" <<'PY'
@@ -196,20 +218,20 @@ open(path, "w").write(json.dumps({
     "project_name": project,
 }, indent=2) + "\n")
 PY
-  echo "  Wrote $CONFIG_FILE."
+  echo -e "  Wrote ${YELLOW}$CONFIG_FILE${NC}."
 }
 
 if [ -f "$CONFIG_FILE" ]; then
-  echo "[3/5] Skill config exists at $CONFIG_FILE:"
+  echo -e "\n${BLUE}${BOLD}[3/5]${NC} Skill config exists at ${YELLOW}$CONFIG_FILE${NC}:"
   show_config "$CONFIG_FILE" looker_instance_url default_model \
     default_explores publish_folder_id project_name tile_js_url
   if ask_yn "  Keep these settings?"; then
-    echo "  Keeping existing skill config."
+    echo -e "  ${GREEN}Keeping existing skill config.${NC}"
   else
     prompt_skill_config
   fi
 else
-  echo "[3/5] Writing skill config."
+  echo -e "\n${BLUE}${BOLD}[3/5]${NC} Writing skill config."
   prompt_skill_config
 fi
 
@@ -217,7 +239,7 @@ fi
 # 3. LookML manifest install
 # ----------------------------------------------------------------------
 
-echo "[4/5] Installing LookML manifest into Looker's dev workspace..."
+echo -e "\n${BLUE}${BOLD}[4/5]${NC} Installing LookML manifest into Looker's dev workspace..."
 TILE_URL_FOR_INSTALL="$(python3 -c "import json;print(json.load(open('$CONFIG_FILE')).get('tile_js_url',''))")"
 PROJECT="$(python3 -c "import json;print(json.load(open('$CONFIG_FILE')).get('project_name','canvas_dashboards'))")"
 python3 "$REPO_ROOT/scripts/install-manifest.py" \
@@ -230,12 +252,12 @@ python3 "$REPO_ROOT/scripts/install-manifest.py" \
 # ----------------------------------------------------------------------
 
 LOOKER_URL_FROM_CFG="$(python3 -c "import json;cfg=json.load(open('$LOOKER_CONFIG_PATH'));print(cfg.get('target_url', cfg.get('base_url')))")"
-echo "[5/5] Finish in the Looker IDE (one-time, 30 seconds):"
-echo "        Open  ${LOOKER_URL_FROM_CFG}/projects/${PROJECT}/files/manifest.lkml"
-echo "        Click Validate LookML -> Commit Changes & Push -> Deploy to Production"
+echo -e "\n${BLUE}${BOLD}[5/5]${NC} Finish in the Looker IDE ${YELLOW}(one-time, 30 seconds):${NC}"
+echo -e "        Open  ${BOLD}${LOOKER_URL_FROM_CFG}/projects/${PROJECT}/files/manifest.lkml${NC}"
+echo -e "        Click ${BOLD}Validate LookML -> Commit Changes & Push -> Deploy to Production${NC}"
 echo ""
 echo "      Then confirm the deploy actually landed:"
-echo "        python3 $REPO_ROOT/scripts/verify-install.py"
+echo -e "        ${YELLOW}python3 $REPO_ROOT/scripts/verify-install.py${NC}"
 echo ""
 echo "(Bare-repo Looker projects can't be deployed via the 4.0 API; "
 echo "this last step has to happen through the IDE. verify-install.py "
@@ -245,19 +267,16 @@ echo "probes production and tells you if the deploy step was missed.)"
 # 5. Done
 # ----------------------------------------------------------------------
 
-cat <<EOF
+echo -e "\n${GREEN}${BOLD}Done.${NC}\n"
 
-Done.
+echo -e "${CYAN}${BOLD}Next steps:${NC}"
+echo -e "  ${BOLD}1.${NC} Open your AI agent (Claude Code, Antigravity, or Cursor) in this repo."
+echo -e "  ${BOLD}2.${NC} Use the ${CYAN}/canvas-creator${NC} skill to build a dashboard."
+echo -e "  ${BOLD}3.${NC} Iterate locally; publish when you're happy.\n"
 
-Next:
-  1. Open your AI agent (Claude Code, Antigravity, or Cursor) in this repo.
-  2. Ask it to build a dashboard using the instructions in skills/dashboard-creator/SKILL.md.
-  3. Iterate locally; publish when you're happy.
+echo -e "${BLUE}${BOLD}Install dir:${NC} $REPO_ROOT"
+echo -e "${BLUE}${BOLD}Config:${NC}      $CONFIG_FILE"
+echo -e "${BLUE}${BOLD}Version:${NC}     $VERSION\n"
 
-Install dir: $REPO_ROOT
-Config:      $CONFIG_FILE
-Version:     $VERSION
-
-To uninstall: bash $REPO_ROOT/scripts/uninstall.sh
-Data handling: see $REPO_ROOT/SECURITY.md and $REPO_ROOT/PRIVACY.md.
-EOF
+echo -e "${YELLOW}To uninstall:${NC} bash $REPO_ROOT/scripts/uninstall.sh"
+echo -e "${YELLOW}Data handling:${NC} see SECURITY.md and PRIVACY.md."
