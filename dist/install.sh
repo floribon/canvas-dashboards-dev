@@ -45,6 +45,16 @@ fi
 INSTALL_DIR="${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
 
 # ----------------------------------------------------------------------
+# 1.5. Safety check: prevent overwriting the developer repository
+# ----------------------------------------------------------------------
+if [ -d "$INSTALL_DIR/.git" ] || [ -d "$INSTALL_DIR/tests" ]; then
+  echo -e "${RED}${BOLD}error: $INSTALL_DIR appears to be the Canvas Dashboards developer repository!${NC}" >&2
+  echo -e "${RED}Running the installer here will extract the tarball and overwrite the source code.${NC}" >&2
+  echo -e "${RED}Please run the installer again and specify a different directory (e.g. ~/canvas-install).${NC}" >&2
+  exit 1
+fi
+
+# ----------------------------------------------------------------------
 # 2. Preserve existing customer config across upgrades
 # ----------------------------------------------------------------------
 

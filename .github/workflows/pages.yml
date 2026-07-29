@@ -27,29 +27,25 @@ jobs:
 
       - name: Build Tarball
         run: |
-          mkdir -p dist
+          mkdir -p build-output
           
           # Read global version (major.minor)
-          GLOBAL_VERSION=$(cat VERSION 2>/dev/null || echo "unknown")
+          GLOBAL_VERSION=$(cat dist/VERSION 2>/dev/null || echo "unknown")
           
           # Inject version (major.minor.patch) using GitHub run number for the patch!
           FULL_VERSION="${GLOBAL_VERSION}.${{ github.run_number }}"
-          sed "s/^VERSION=\".*\"/VERSION=\"$FULL_VERSION\"/" install.sh > dist/install.sh
+          sed "s/^VERSION=\".*\"/VERSION=\"$FULL_VERSION\"/" dist/install.sh > build-output/install.sh
           
           # Create the tarball excluding github actions, the dist dir, git history, and user data
-          tar -czvf dist/canvas-dashboards.tar.gz \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='github-admin' \
-            --exclude='dist' \
-            --exclude='apps' \
+          cd dist
+          tar -czvf ../build-output/canvas-dashboards.tar.gz \
             --exclude='looker-config.json' \
             --exclude='.DS_Store' \
             --exclude='scripts/toolbox' \
             .
             
           # Generate the sha256 checksum
-          cd dist
+          cd ../build-output
           sha256sum canvas-dashboards.tar.gz > canvas-dashboards.tar.gz.sha256
 
       - name: Setup Pages
@@ -58,7 +54,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'dist'
+          path: 'build-output'
 
       - name: Deploy to GitHub Pages
         id: deployment

@@ -1,10 +1,20 @@
+# OS Files
 .DS_Store
+**/.DS_Store
+
+# User configurations & generated data
 looker-config.json
+dist/looker-config.json
 skills/dashboard-creator/config.json
-scripts/__pycache__/
-scripts/toolbox
-.claude/
-examples/.DS_Store
-skills/.DS_Store
-skills/dashboard-creator/.DS_Store
+dist/skills/dashboard-creator/config.json
 apps/
+dist/apps/
+
+# Binaries
+scripts/toolbox
+dist/scripts/toolbox
+
+# Python
+__pycache__/
+**/__pycache__/
+.claude/
