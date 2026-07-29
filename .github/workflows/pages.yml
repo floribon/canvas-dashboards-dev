@@ -36,6 +36,9 @@ jobs:
           FULL_VERSION="${GLOBAL_VERSION}.${{ github.run_number }}"
           sed "s/^VERSION=\".*\"/VERSION=\"$FULL_VERSION\"/" dist/install.sh > build-output/install.sh
           
+          # Also write it to dist/VERSION so scripts inside the tarball read the full version
+          echo "$FULL_VERSION" > dist/VERSION
+          
           # Create the tarball excluding github actions, the dist dir, git history, and user data
           cd dist
           tar -czvf ../build-output/canvas-dashboards.tar.gz \
